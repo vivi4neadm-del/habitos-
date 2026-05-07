@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Hábitos" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Rastreador de Hábitos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100dvh; }
+    .container { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem env(safe-area-inset-bottom); }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .subtitle { font-size: 14px; color: #666; margin-bottom: 1.5rem; }
+    .progress-card { background: white; border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .progress-label { font-size: 14px; color: #666; }
+    .progress-count { font-size: 24px; font-weight: 600; }
+    .progress-bar-bg { background: #eee; border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar { height: 100%; background: #1D9E75; border-radius: 99px; transition: width 0.4s; }
+    .progress-pct { font-size: 13px; color: #888; margin-top: 6px; }
+    .habits-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+    .habit-card { background: white; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .checkbox { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #ddd; background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .checkbox.checked { border-color: var(--color); background: var(--color); }
+    .habit-name { flex: 1; font-size: 15px; transition: color 0.2s; }
+    .habit-name.done { color: #aaa; text-decoration: line-through; }
+    .streak { font-size: 12px; color: #BA7517; background: #FAEEDA; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+    .habit-actions { display: flex; gap: 4px; }
+    .icon-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 4px; opacity: 0.5; }
+    .icon-btn:hover { opacity: 1; }
+    .add-btn { width: 100%; padding: 12px; font-size: 15px; color: #888; background: white; border: 1.5px dashed #ddd; border-radius: 12px; cursor: pointer; margin-bottom: 1.5rem; }
+    .add-btn:hover { border-color: #aaa; color: #555; }
+    .add-form { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+    .add-form input { flex: 1; padding: 10px 14px; font-size: 15px; border: 1.5px solid #ddd; border-radius: 10px; outline: none; }
+    .add-form input:focus { border-color: #1D9E75; }
+    .btn { padding: 10px 16px; font-size: 14px; border-radius: 10px; border: none; cursor: pointer; font-weight: 500; }
+    .btn-primary { background: #1D9E75; color: white; }
+    .btn-ghost { background: #f0f0f0; color: #555; }
+    .week-section h2 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+    .week-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .week-table th { text-align: center; padding: 4px 4px 8px; color: #888; font-weight: 400; width: 36px; }
+    .week-table th.today { color: #1a1a1a; font-weight: 600; }
+    .week-table th.habit-col { text-align: left; padding-right: 8px; }
+    .week-table td { padding: 4px; }
+    .week-table td.habit-name-cell { font-size: 13px; color: #555; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+    .dot { width: 22px; height: 22px; border-radius: 5px; margin: 0 auto; border: 1px solid #eee; background: #f5f5f0; }
+    .dot.filled { border-color: var(--color); background: var(--color); }
+    .edit-row { display: flex; gap: 6px; flex: 1; }
+    .edit-row input { flex: 1; padding: 4px 8px; font-size: 14px; border: 1.5px solid #1D9E75; border-radius: 8px; outline: none; }
+    .edit-row button { padding: 4px 10px; font-size: 13px; border-radius: 8px; border: none; cursor: pointer; background: #1D9E75; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Meus Hábitos</h1>
+    <p class="subtitle" id="date-label"></p>
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="progress-label">Progresso de hoje</span>
+        <span class="progress-count" id="prog-count">0/0</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+      <p class="progress-pct" id="prog-pct">0% concluído</p>
+    </div>
+    <div class="habits-list" id="habits-list"></div>
+    <div id="add-area"></div>
+    <div class="week-section">
+      <h2>Últimos 7 dias</h2>
+      <div style="overflow-x:auto"><table class="week-table" id="week-table"></table></div>
+    </div>
+  </div>
+  <script>
+    const DAYS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+    const COLORS = ["#1D9E75","#378ADD","#D4537E","#D85A30","#7F77DD","#BA7517","#639922","#E24B4A"];
+
+    function todayKey() { return new Date().toISOString().split("T")[0]; }
+    function last7() {
+      return Array.from({length:7}, (_,i) => {
+        const d = new Date(); d.setDate(d.getDate()-6+i);
+        return d.toISOString().split("T")[0];
+      });
+    }
+    function calcStreak(logs, id) {
+      let s=0, d=new Date();
+      while(true) { const k=d.toISOString().split("T")[0]; if(logs[k]?.[id]){s++;d.setDate(d.getDate()-1);}else break; }
+      return s;
+    }
+    function save() { localStorage.setItem("ht_habits",JSON.stringify(habits)); localStorage.setItem("ht_logs",JSON.stringify(logs)); }
+
+    let habits = JSON.parse(localStorage.getItem("ht_habits")||"null") || [
+      {id:"h1",name:"Beber 2L de água"},{id:"h2",name:"Exercitar 30 min"},{id:"h3",name:"Ler 20 páginas"}
+    ];
+    let logs = JSON.parse(localStorage.getItem("ht_logs")||"{}");
+    let editingId = null;
+
+    const dateLabel = document.getElementById("date-label");
+    dateLabel.textContent = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+
+    function render() {
+      const today = todayKey();
+      const done = habits.filter(h=>logs[today]?.[h.id]).length;
+      const pct = habits.length ? Math.round(done/habits.length*100) : 0;
+      document.getElementById("prog-count").textContent = `${done}/${habits.length}`;
+      document.getElementById("prog-bar").style.width = pct+"%";
+      document.getElementById("prog-pct").textContent = pct+"% concluído";
+
+      const list = document.getElementById("habits-list");
+      list.innerHTML = "";
+      habits.forEach((h,i) => {
+        const color = COLORS[i%COLORS.length];
+        const checked = !!logs[today]?.[h.id];
+        const streak = calcStreak(logs,h.id);
+        const card = document.createElement("div");
+        card.className = "habit-card";
+        const chk = document.createElement("div");
+        chk.className = "checkbox"+(checked?" checked":"");
+        chk.style.setProperty("--color",color);
+        if(checked) chk.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        chk.onclick = () => { logs[today]=logs[today]||{}; logs[today][h.id]=!logs[today][h.id]; save(); render(); };
+        card.appendChild(chk);
+        if(editingId===h.id) {
+          const row = document.createElement("div"); row.className="edit-row";
+          const inp = document.createElement("input"); inp.value=h.name; inp.autofocus=true;
+          const btn = document.createElement("button"); btn.textContent="✓";
+          btn.onclick = () => { if(inp.value.trim()){h.name=inp.value.trim();save();} editingId=null; render(); };
+          inp.onkeydown = e => { if(e.key==="Enter")btn.click(); if(e.key==="Escape"){editingId=null;render();} };
+          row.appendChild(inp); row.appendChild(btn); card.appendChild(row);
+          setTimeout(()=>inp.focus(),50);
+        } else {
+          const nm = document.createElement("span"); nm.className="habit-name"+(checked?" done":""); nm.textContent=h.name; card.appendChild(nm);
+          if(streak>0){const s=document.createElement("span");s.className="streak";s.textContent=`🔥 ${streak}d`;card.appendChild(s);}
+          const acts = document.createElement("div"); acts.className="habit-actions";
+          const ed = document.createElement("button"); ed.className="icon-btn"; ed.textContent="✏️"; ed.onclick=()=>{editingId=h.id;render();};
+          const dl = document.createElement("button"); dl.className="icon-btn"; dl.textContent="🗑️"; dl.onclick=()=>{habits=habits.filter(x=>x.id!==h.id);save();render();};
+          acts.appendChild(ed); acts.appendChild(dl); card.appendChild(acts);
+        }
+        list.appendChild(card);
+      });
+
+      const addArea = document.getElementById("add-area");
+      addArea.innerHTML = "";
+      if(habits.length<10) {
+        const btn = document.createElement("button"); btn.className="add-btn";
+        btn.textContent=`+ Adicionar hábito (${habits.length}/10)`;
+        btn.onclick = () => {
+          addArea.innerHTML="";
+          const form = document.createElement("div"); form.className="add-form";
+          const inp = document.createElement("input"); inp.placeholder="Nome do hábito..."; inp.maxLength=40;
+          const ok = document.createElement("button"); ok.className="btn btn-primary"; ok.textContent="Adicionar";
+          const cancel = document.createElement("button"); cancel.className="btn btn-ghost"; cancel.textContent="Cancelar";
+          ok.onclick = () => { if(inp.value.trim()&&habits.length<10){habits.push({id:"h"+Date.now(),name:inp.value.trim()});save();render();}};
+          cancel.onclick = render;
+          inp.onkeydown = e=>{if(e.key==="Enter")ok.click();if(e.key==="Escape")render();};
+          form.appendChild(inp); form.appendChild(ok); form.appendChild(cancel);
+          addArea.appendChild(form); setTimeout(()=>inp.focus(),50);
+        };
+        addArea.appendChild(btn);
+      }
+
+      const days7 = last7();
+      const todayDayIdx = new Date().getDay();
+      const table = document.getElementById("week-table");
+      table.innerHTML = "";
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+      const th0 = document.createElement("th"); th0.className="habit-col"; hr.appendChild(th0);
+      days7.forEach((d,i) => {
+        const dayIdx=(todayDayIdx-6+i+7)%7;
+        const th=document.createElement("th"); th.textContent=DAYS[dayIdx];
+        if(d===today) th.className="today"; hr.appendChild(th);
+      });
+      thead.appendChild(hr); table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      habits.forEach((h,i) => {
+        const color=COLORS[i%COLORS.length];
+        const tr=document.createElement("tr");
+        const td0=document.createElement("td"); td0.className="habit-name-cell"; td0.textContent=h.name; tr.appendChild(td0);
+        days7.forEach(d=>{
+          const td=document.createElement("td");
+          const dot=document.createElement("div"); dot.className="dot"+(logs[d]?.[h.id]?" filled":"");
+          dot.style.setProperty("--color",color); td.appendChild(dot); tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+    }
+
+    render();
+
+    if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+  </script>
+</body>
+</html>
